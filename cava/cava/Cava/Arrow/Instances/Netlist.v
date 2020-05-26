@@ -17,8 +17,8 @@ From ExtLib Require Export Data.Monads.StateMonad.
 Import MonadNotation.
 
 From Cava Require Import Netlist.
-From Cava Require Import Signal.
 From Cava Require Import Types.
+From Cava Require Import Signal.
 From Cava Require Import BitArithmetic.
 From Cava Require Import Arrow.Arrow.
 
@@ -126,57 +126,57 @@ Section NetlistEval.
 
     not_gate '(x,tt) :=
       '(nl, i) <- get ;;
-      put (cons (Not x i) nl, Wire ((i+1)%N)) ;;
+      put (cons (Not x i) nl, (i+1)%N) ;;
       ret i;
 
     and_gate '(x,(y,tt)) :=
       '(nl, i) <- get ;;
-      put (cons (And x y i) nl, Wire ((i+1)%N)) ;;
+      put (cons (And x y i) nl, (i+1)%N) ;;
       ret i;
 
     nand_gate '(x,(y,tt)) :=
       '(nl, i) <- get ;;
-      put (cons (Nand x y i) nl, Wire ((i+1)%N)) ;;
+      put (cons (Nand x y i) nl, (i+1)%N) ;;
       ret i;
 
     or_gate '(x,(y,tt)) :=
       '(nl, i) <- get ;;
-      put (cons (Or x y i) nl, Wire ((i+1)%N)) ;;
+      put (cons (Or x y i) nl, (i+1)%N) ;;
       ret i;
 
     nor_gate '(x,(y,tt)) :=
       '(nl, i) <- get ;;
-      put (cons (Nor x y i) nl, Wire ((i+1)%N)) ;;
+      put (cons (Nor x y i) nl, (i+1)%N) ;;
       ret i;
 
     xor_gate '(x,(y,tt)) :=
       '(nl, i) <- get ;;
-      put (cons (Xor x y i) nl, Wire ((i+1)%N)) ;;
+      put (cons (Xor x y i) nl, (i+1)%N) ;;
       ret i;
 
     xnor_gate '(x,(y,tt)) :=
       '(nl, i) <- get ;;
-      put (cons (Xnor x y i) nl, Wire ((i+1)%N)) ;;
+      put (cons (Xnor x y i) nl, (i+1)%N) ;;
       ret i;
 
     buf_gate '(x,tt) :=
       '(nl, i) <- get ;;
-      put (cons (Buf x i) nl, Wire ((i+1)%N)) ;;
+      put (cons (Buf x i) nl, (i+1)%N) ;;
       ret i;
 
     xorcy '(x, (y, tt)) :=
       '(nl, i) <- get ;;
-      put (cons (Component "XORCY" [] [("O", i); ("CI", x); ("LI", y)]) nl, Wire ((i+1)%N)) ;;
+      put (cons (Component "XORCY" [] [("O", i); ("CI", x); ("LI", y)]) nl, (i+1)%N) ;;
       ret i;
 
     muxcy '(s,(ci,(di, tt))) :=
       '(nl, i) <- get ;;
-      put (cons (Component "MUXCY" [] [("O", i); ("S", s); ("CI", ci); ("DI", di)]) nl, Wire ((i+1)%N)) ;;
+      put (cons (Component "MUXCY" [] [("O", i); ("S", s); ("CI", ci); ("DI", di)]) nl, (i+1)%N) ;;
       ret i;
 
     unsigned_add m n s '(x,(y, tt)) :=
       '(nl, i) <- get ;;
-      let o := map (compose Wire N.of_nat) (seq (N.to_nat i) s) in
+      let o := map N.of_nat (seq (N.to_nat i) s) in
       put (cons (UnsignedAdd x y o) nl, (i + N.of_nat s)%N) ;;
       ret o;
   }.
