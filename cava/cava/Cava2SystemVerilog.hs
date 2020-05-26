@@ -426,13 +426,13 @@ declarePort (Coq_mkPort name kind) =
     Bit -> "  (* mark_debug = \"true\" *) logic " ++ name 
     BitVec xs -> "  (* mark_debug = \"true\" *) " ++ vectorDeclaration name xs 
 
-initTestVectors :: [PortDeclaration] -> [[Signal]] -> [String]
+initTestVectors :: [PortDeclaration] -> [[SignalExpr]] -> [String]
 initTestVectors [] _ = []
 initTestVectors (p:ps) s
   = initTestVector p (map head s) ++
     initTestVectors ps (map tail s)
   
-initTestVector :: PortDeclaration -> [Signal] -> [String]
+initTestVector :: PortDeclaration -> [SignalExpr] -> [String]
 initTestVector pd@(Coq_mkPort name typ) s
   = [declarePort (Coq_mkPort name' typ) ++ " = '{"] ++
     insertCommas (map showSignal s) ++
@@ -440,21 +440,21 @@ initTestVector pd@(Coq_mkPort name typ) s
     where
     name' = name ++ "_vectors[" ++ show (length s) ++ "]"
 
-showSignal :: Signal -> String
+showSignal :: SignalExpr -> String
 showSignal (BitVal v)   = "    1'b" ++ showBit v
 showSignal (VecVal xs) | isAllBits xs
   = "    " ++ show (length xs) ++ "'d" ++ show (signalToInt xs)
 showSignal (VecVal xs)
   = "    '{ " ++ concat (insertCommas (map showSignal xs )) ++ " }"  
      
-isAllBits :: [Signal] -> Bool
+isAllBits :: [SignalExpr] -> Bool
 isAllBits = and . map isBitVal
 
-isBitVal :: Signal -> Bool
+isBitVal :: SignalExpr -> Bool
 isBitVal (BitVal _) = True
 isBitVal _ = False
 
-signalToInt :: [Signal] -> Integer
+signalToInt :: [SignalExpr] -> Integer
 signalToInt [] = 0
 signalToInt ((BitVal b):xs)
   = case b of
