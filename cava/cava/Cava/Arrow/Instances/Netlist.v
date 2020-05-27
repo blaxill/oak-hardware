@@ -36,7 +36,7 @@ Section NetlistEval.
 
   #[refine] Instance NetlistCat : Category := {
     object := bundle;
-    morphism X Y := signalTy Signal X -> state (Netlist * N) (signalTy Signal Y);
+    morphism X Y := signalTy Signal X -> state Netlist (signalTy Signal Y);
     id X x := ret x;
     compose X Y Z f g := g >=> f;
 
@@ -108,6 +108,13 @@ Section NetlistEval.
     simpl; auto.
   Defined.
 
+  Definition addInstance (newInst: Instance) : state CavaState Datatypes.unit :=
+  cs <- get;;
+  match cs with
+     | mkCavaState o isSeq (mkModule name insts inputs outputs)
+      => put (mkCavaState o isSeq (mkModule name (newInst::insts) inputs outputs))
+     end.
+
   Instance NetlistCava : Cava := {
     cava_arrow := NetlistArr;
 
@@ -115,21 +122,21 @@ Section NetlistEval.
     bitvec n := One (BitVec n);
 
     constant b _ := match b with
-      | true => ret 1%N
-      | false => ret 0%N
+      | true => ret Vcc
+      | false => ret Gnd
       end;
 
-    constant_vec n v _ := ret (mapBitVec (fun b => match b with
+    (* constant_vec n v _ := ret (mapBitVec (fun b => match b with
       | true => 1%N
       | false => 0%N
-    end) n n v);
+    end) n n v); *)
 
     not_gate '(x,tt) :=
-      '(nl, i) <- get ;;
-      put (cons (Not x i) nl, (i+1)%N) ;;
-      ret i;
+      'o <- newWire ;;
+      addInstance( Not x o);;
+      ret o;
 
-    and_gate '(x,(y,tt)) :=
+    (*and_gate '(x,(y,tt)) :=
       '(nl, i) <- get ;;
       put (cons (And x y i) nl, (i+1)%N) ;;
       ret i;
@@ -178,7 +185,7 @@ Section NetlistEval.
       '(nl, i) <- get ;;
       let o := map N.of_nat (seq (N.to_nat i) s) in
       put (cons (UnsignedAdd x y o) nl, (i + N.of_nat s)%N) ;;
-      ret o;
+      ret o; *)
   }.
 
   Close Scope string_scope.
