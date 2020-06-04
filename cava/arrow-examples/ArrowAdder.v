@@ -109,22 +109,21 @@ Definition below {A B C D E F G: object}
 
 Hint Resolve nprod_tup_is_nprod : core.
 
-Fixpoint col {A B C D: object} n
-  (circuit: << A, B >> ~> ( A ** D ))
-  : Kappa << A, nprod B (S n) >> (A ** nprod D (S n)).
+Fixpoint col {A B C: object} n
+  (circuit: << A, B >> ~> ( A ** C ))
+  : Kappa << A, nprod B (S n) >> (A ** nprod C (S n)).
 Proof.
   refine (
   match n with
   | O => <[ \a b => !circuit a b ]>
   | S n' => 
-    let column_above := Closure_conversion (col A B C D n' circuit) in
+    let column_above := Closure_conversion (col A B C n' circuit) in
     let full_circuit := below column_above circuit in
     _
   end).
   auto.
 Defined.
 
-Definition rippleCarryAdder (width: nat)
-  : Kappa << bit, bitvec[width] >> (bitvec[width] ** bit) :=
- <[ col width fullAdder 
- ]>.
+Definition rippleCarryAdder' (width: nat)
+  : Kappa << bit, nprod (bit**bit) (S width) >> (bit ** nprod bit (S width))
+  := col width (fullAdder _).
