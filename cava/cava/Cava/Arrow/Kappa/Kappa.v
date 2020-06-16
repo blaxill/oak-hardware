@@ -49,7 +49,7 @@ Section Vars.
     | UnsignedAdd: forall a b c, kappa_sugared << Vector a Bit, Vector b Bit, Unit >> (Vector c Bit)
     (* TODO: enable lut *)
     (*| Lut n: (bool^^n --> bool) -> bitvec (N.of_nat n) ~> bit;*)
-    | IndexVec: forall n {o}, kappa_sugared << Vector n o, Vector (Nat.log2_up n) Bit, Unit >> o
+    | IndexVec: forall n {o}, kappa_sugared << Vector n o, Vector (log2_up_min_1 n) Bit, Unit >> o
     | SliceVec: forall n x y {o}, x < n -> y <= x -> kappa_sugared << Vector n o, Unit >> (Vector (x - y + 1) o)
     | ToVec: forall {o}, kappa_sugared << o, Unit >> (Vector 1 o)
     | Append: forall n {o}, kappa_sugared << Vector n o, o, Unit >> (Vector (n+1) o)
@@ -97,7 +97,7 @@ Section Vars.
 
   Definition kappa_index_vec {n o}
     (array: kappa_sugared Unit (Vector n o))
-    (index: kappa_sugared Unit (Vector (Nat.log2_up n) Bit))
+    (index: kappa_sugared Unit (Vector (log2_up_min_1 n) Bit))
     : kappa_sugared Unit o :=
     (App (App (IndexVec n) array) index).
 
@@ -124,11 +124,15 @@ Section Vars.
     let tail_ := Let (App TupleRight circuit) (fun x => Var x) in
     _).
     assert ((S (S n)) - 1 = S n).
-    lia.
+    simpl. auto.
     rewrite H in tail_.
     exact ( tupleHelper head_ tail_ ).
     Grab Existential Variables.
-    abstract lia.
+    compute.
+    auto.
+    apply le_n_S.
+    apply le_n_S.
+    apply le_0_n.
   Defined.
   Definition kappa_head' {n o}
     : kappa_sugared << Vector (S (S n)) o, Unit>> <<o, Vector (S n) o>>
@@ -167,7 +171,7 @@ Section Vars.
     | ConstantVec v => DArr (constant_bitvec _ v)
 
     | IndexVec n => 
-      kappa_app << Vector n _, Vector (Nat.log2_up n) Bit, Unit >> (index_vec n _)
+      kappa_app << Vector n _, Vector (log2_up_min_1 n) Bit, Unit >> (index_vec n _)
     | SliceVec n x y H1 H2 => 
       kappa_app << Vector n _, Unit >> (slice_vec n x y _ H1 H2)
 

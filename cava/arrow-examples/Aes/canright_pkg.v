@@ -5,7 +5,7 @@ From Coq Require Import NArith Lia.
 
 Import KappaNotation.
 
-From Aes Require Import Util.
+Require Import Util List.
 
 Section var.
 Variable var: Kind -> Kind -> Type.
@@ -26,8 +26,8 @@ Definition aes_mul_gf2p2
   : kappa_sugared var << Vector 2 Bit , Vector 2 Bit , Unit >> << Vector 2 Bit>> :=
 <[ \g d =>
   let a = and (g[#1]) (d[#1]) in
-  let g_xor = !(reduce Xor) g in
-  let d_xor = !(reduce Xor) d in
+  let g_xor = !(reduce _ Xor) g in
+  let d_xor = !(reduce _ Xor) d in
   let b = and g_xor d_xor in
   let c = and (g[#0]) (d[#0]) in
   mkVec
@@ -104,13 +104,12 @@ Definition aes_mul_gf2p4
 refine (
 <[ \gamma delta =>
   let a = !aes_mul_gf2p2 (gamma[3:2]) (delta[3:2]) in
-  let b = !aes_mul_gf2p2 (!map2_xor (gamma[3:2]) (gamma[1:0])) (!map2_xor (delta[3:2]) (delta[1:0])) in
+  let b = !aes_mul_gf2p2 (gamma[3:2] ^ gamma[1:0]) (delta[3:2] ^ delta[1:0]) in
   let c = !aes_mul_gf2p2 (gamma[1:0]) (delta[1:0]) in
   concat
-    (!map2_xor c (!aes_scale_omega2_gf2p2 b))
-    (!map2_xor a (!aes_scale_omega2_gf2p2 b))
-]>);
-  abstract lia.
+    (c ^ !aes_scale_omega2_gf2p2 b)
+    (a ^ !aes_scale_omega2_gf2p2 b)
+]>); compute; auto.
 Defined.
 
 (* // Square and scale by nu in GF(2^4)/GF(2^2), using normal basis [alpha^8, alpha^2] *)
@@ -128,13 +127,12 @@ Definition aes_square_scale_gf2p4_gf2p2
   : kappa_sugared var << Vector 4 Bit, Unit >> << Vector 4 Bit >>.
 refine (
 <[ \gamma =>
-    let a = !map2_xor (gamma[3:2]) (gamma[1:0]) in
+    let a = gamma[3:2] ^ gamma[1:0] in
     let b = !aes_square_gf2p2 (gamma[1:0]) in
     concat
       (!aes_scale_omega_gf2p2 b)
       (!aes_square_gf2p2 a)
-]>);
-  abstract lia.
+]>); compute; auto.
 Defined.
 
 (* // Basis conversion matrices to convert between polynomial basis A, normal basis X *)
@@ -152,9 +150,73 @@ Defined.
 End var.
 
 Section sanity_check.
-  Lemma aes_mul_gf2p4_wf: wf_debrujin ENil (Desugar aes_mul_gf2p4 natvar).
-  Proof. exact (Kappa_wf (Desugar (@aes_mul_gf2p4))). Qed.
+  Lemma aes_mul_gf2p2_wf: wf_debrujin ENil (Desugar (aes_mul_gf2p2 ) _).
+  Proof.
+    wf_kappa_via_equiv; intros;
+
+  repeat match goal with 
+  | [ |- In _ _ ] => simpl; tauto
+  | [ H: In _ nil |- _] => inversion H
+  end.
+
+
+    repeat match goal with 
+    | [ |- kappa_equivalence _ _ _] => constructor;intros
+    end; simpl; tauto.
+    
+    intros; simpl.
+    inversion H.
+  Qed.
+
+  Definition aes_mul_gf2p2_structure
+    := to_constructive (Desugar (@aes_mul_gf2p2)) aes_mul_gf2p2_wf.
+  Compute aes_mul_gf2p2_structure.
 
   Definition aes_mul_gf2p4_structure: structure << Vector 4 Bit, Vector 4 Bit >> << Vector 4 Bit >>
     := to_constructive (Desugar (@aes_mul_gf2p4)) aes_mul_gf2p4_wf.
+
+  Require Import Cava.Arrow.Instances.Prop.
+  Goal structure << Vector 4 Bit, Vector 4 Bit >> (Vector 4 Bit).
+    set (circuit := aes_mul_gf2p4).
+    set (circuit_wf := aes_mul_gf2p4_wf).
+
+    match goal with 
+    | [ circuit := ?circuit_kappa : forall var, kappa_sugared var ?I ?O
+      , circuit_wf: wf_debrujin ENil (Desugar (?circuit_kappa) natvar) |- _] =>
+      let circuit_structure := fresh circuit "_structure" in
+        pose (to_constructive (Desugar circuit_kappa) circuit_wf) as circuit_structure
+    end.
+    match goal with 
+    | [ circuit_structure : structure ?I ?O |- _] =>
+      let circuit_no_loops := fresh circuit_structure "_no_loops" in
+        pose (toCava circuit_structure NoLoops) as circuit_no_loops
+        (* compute in circuit_no_loops *)
+    end.
+
+    hnf in circuit_structure_no_loops.
+    compute in circuit_structure_no_loops.
+    inversion circuit_structure_no_loops.
+    apply (modular_prop _ _ _ _ _ _ ) in circuit_structure_no_loops.
+
+    apply circuit_structure.
+
+    apply (to_constructive (Desugar circuit) circuit_wf).
+
+(* Definition to_constructive {i o} (expr: Kappa i o) (wf: wf_debrujin ENil (expr _))
+  : structure (remove_rightmost_unit i) o *)
+
+      (* pose proof (to_constructive (Desugar H1) H2) as x;
+      clear H1; clear H2 *)
+  (* | [ H1: forall var, kappa_sugared var ?I ?O |- _ ] => idtac *)
+  (* | [ H2: wf_debrujin ENil (Desugar (?X) natvar) |- _ ] => idtac *)
+  (* | [ H2: wf_debrujin ENil (Desugar (?X) natvar) |- _ ] => 
+    (* idtac  *)
+    idtac "hello " X
+    match X with
+    |  => match
+    end *)
+  end.
+
+  Show Proof.
+    mk_constructive.
 End sanity_check.

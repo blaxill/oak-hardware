@@ -3,3 +3,4 @@
 
 Util.v
 canright_pkg.v
+canright_masked_noreuse.v

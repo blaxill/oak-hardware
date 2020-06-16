@@ -75,6 +75,7 @@ Proof. auto. Defined.
 (* adam megacz style generalized arrow,
   laws coming from monoidal categories *)
 Class Arrow (object: Set) `(C: Category object) (unit: object) (product: object -> object -> object) := {
+  arrow_cat := C;
   u := unit;
   product := product
     where "x ** y" := (product x y);
@@ -108,6 +109,8 @@ Class Arrow (object: Set) `(C: Category object) (unit: object) (product: object 
 
   (* triangle and pentagon identities? *)
 }.
+
+Coercion arrow_cat: Arrow >-> Category.
 
 Declare Scope arrow_scope.
 Bind Scope arrow_scope with Arrow.
@@ -193,6 +196,13 @@ match v with
 | x::xs => (x, vec_to_nprod A _ xs)
 end%vector.
 
+Definition log2_up_min_1 (n: nat): nat :=
+  match n with
+  | 0 => 1 
+  | 1 => 1 
+  | S n => Nat.log2_up (S n)
+  end.
+
 (* Cava *)
 Class Cava := {
   cava_cat :> Category Kind;
@@ -202,7 +212,7 @@ Class Cava := {
   cava_arrow_copy :> ArrowCopy _;
   cava_arrow_loop :> ArrowLoop _;
 
-  vec_index n := Vector (Nat.log2_up n) Bit;
+  vec_index n := Vector (log2_up_min_1 n) Bit;
 
   constant : bool -> (Unit ~> Bit);
   constant_bitvec n: N -> (Unit ~> Vector n Bit);
@@ -235,6 +245,7 @@ Class Cava := {
   concat n m o: Vector n o ** Vector m o ~> Vector (n + m) o;
   split n m o: m < n -> Vector n o ~> (Vector m o ** Vector (n - m) o);
 }.
+
 
 Coercion cava_cat: Cava >-> Category.
 Coercion cava_arrow: Cava >-> Arrow.
