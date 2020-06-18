@@ -63,14 +63,15 @@ Add Parametric Relation (object: Type) (C: Category object) (x y: object): (morp
   transitivity proved by (@Equivalence_Transitive _ _ (morphism_setoid_equivalence x y))
   as parametric_relation_eqv.
 
-Hint Extern 1 => apply compose_respects_equivalence: core.
-Hint Extern 1 => apply id_left: core.
-Hint Extern 1 => apply id_right: core.
-
 Add Parametric Morphism (object: Type) (C: Category object) (x y z: object) : (@compose object C x y z)
   with signature (morphism_equivalence _ _ ==> morphism_equivalence _ _ ==> morphism_equivalence _ _)
   as parametric_morphism_comp.
-Proof. auto. Defined.
+Proof. 
+  Hint Extern 1 => apply compose_respects_equivalence: core.
+  Hint Extern 1 => apply id_left: core.
+  Hint Extern 1 => apply id_right: core.
+  auto.
+Defined.
 
 (* adam megacz style generalized arrow,
   laws coming from monoidal categories *)
@@ -245,7 +246,6 @@ Class Cava := {
   concat n m o: Vector n o ** Vector m o ~> Vector (n + m) o;
   split n m o: m < n -> Vector n o ~> (Vector m o ** Vector (n - m) o);
 }.
-
 
 Coercion cava_cat: Cava >-> Category.
 Coercion cava_arrow: Cava >-> Arrow.

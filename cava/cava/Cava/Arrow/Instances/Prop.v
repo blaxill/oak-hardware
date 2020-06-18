@@ -162,11 +162,10 @@ Qed.
 Lemma modular_prop: forall (x y z : Kind)
   (A: Arrow Kind ConjPropKindCategory Unit Tuple)
   (f: x ~[A]~> y) (g: y ~[A]~> z),
-  (f >>> g) -> 
-  g /\ f.
+  (f >>> g) = 
+  (g /\ f).
 Proof.
   intros.
-  cbn in H.
   tauto.
 Qed.
 

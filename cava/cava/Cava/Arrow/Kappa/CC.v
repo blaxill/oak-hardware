@@ -296,7 +296,7 @@ Lemma wf_debrujin_succ:
   @wf_debrujin (Tuple ix iy) o n env expr -> @wf_debrujin iy o (S n) (ECons ix env) (f n).
 Proof.
   auto.
-Qed.
+Defined.
 
 Lemma wf_lax1:
   forall x y z
@@ -308,7 +308,7 @@ Lemma wf_lax1:
   @wf_debrujin x y n env expr1.
 Proof.
   auto.
-Qed.
+Defined.
 
 Lemma wf_lax2:
   forall x y z
@@ -320,7 +320,7 @@ Lemma wf_lax2:
   @wf_debrujin y z n env expr2.
 Proof.
   auto.
-Qed.
+Defined.
 
 Lemma wf_lax_app1:
   forall x y z
@@ -332,7 +332,7 @@ Lemma wf_lax_app1:
   @wf_debrujin <<x, y>> z n env f.
 Proof.
   auto.
-Qed.
+Defined.
 
 Lemma wf_lax_app2:
   forall x y z
@@ -344,7 +344,7 @@ Lemma wf_lax_app2:
   @wf_debrujin Unit x n env e.
 Proof.
   auto.
-Qed.
+Defined.
 
 (* Perform closure conversion by passing an explicit environment. The higher
 order PHOAS representation is converted to first order form with de Brujin
@@ -403,7 +403,7 @@ new environment variable in to place*)
 | DArr m => fun _ _ _ => _ (* cancelr >>> m *)
 end (eq_refl i) (eq_refl o)
 ).
-- cbn in wf.
+- unfold wf_debrujin in wf.
   assert (as_kind env ?? lookup_kind v (as_kind_list env) = structure (as_kind env) o).
 
   rewrite wf.
@@ -570,6 +570,12 @@ Definition Closure_conversion {i o} (expr: Kappa i o): i ~> o
 Hint Resolve closure_conversion' : core.
 Hint Resolve closure_conversion : core.
 Hint Resolve Closure_conversion : core.
+
+Ltac wf_kappa_via_compute :=
+  intros;
+  unfold wf_debrujin;
+  compute;
+  tauto.
 
 Ltac wf_kappa_via_equiv :=
   match goal with

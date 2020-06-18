@@ -5,7 +5,7 @@ From Coq Require Import NArith Lia.
 
 Import KappaNotation.
 
-Require Import Util List.
+Require Import Util pkg.
 
 Section var.
 Variable var: Kind -> Kind -> Type.
@@ -143,80 +143,104 @@ Defined.
 (* // transformation from polynomial basis A to normal basis X. *)
 (* // (see Appendix A of the technical report) *)
 (* parameter logic [7:0] A2X [8] = '{8'h98, 8'hf3, 8'hf2, 8'h48, 8'h09, 8'h81, 8'ha9, 8'hff}; *)
+Definition A2X : kappa_sugared var Unit (Vector 8 (Vector 8 Bit)) :=
+  <[ mkVec 
+    ( #255 (* = Byte.xff, coq doesn't have hex literals? *)
+    , #169 (* 0xa9 *)
+    , #129 (* 0x81 *)
+    , #  9 (* 0x09 *)
+    , # 72 (* 0x48 *)
+    , #242 (* 0xf2 *)
+    , #243 (* 0xf3 *)
+    , #152 (* 0x98 *)
+    )
+  ]>.
 (* parameter logic [7:0] X2A [8] = '{8'h64, 8'h78, 8'h6e, 8'h8c, 8'h68, 8'h29, 8'hde, 8'h60}; *)
+Definition X2A : kappa_sugared var Unit (Vector 8 (Vector 8 Bit)) :=
+  <[ mkVec 
+    ( #  6 (* 0x06 *)
+    , #222 (* 0xde *)
+    , # 41 (* 0x29 *)
+    , #104 (* 0x68 *)
+    , #140 (* 0x8c *)
+    , #110 (* 0x6e *)
+    , #120 (* 0x78 *)
+    , #100 (* 0x64 *)
+    )
+  ]>.
 (* parameter logic [7:0] X2S [8] = '{8'h58, 8'h2d, 8'h9e, 8'h0b, 8'hdc, 8'h04, 8'h03, 8'h24}; *)
+Definition X2S : kappa_sugared var Unit (Vector 8 (Vector 8 Bit)) :=
+  <[ mkVec 
+    ( # 36 (* 0x24 *)
+    , #  3 (* 0x03 *)
+    , #  4 (* 0x04 *)
+    , #220 (* 0xdc *)
+    , # 11 (* 0x0b *)
+    , #158 (* 0x9e *)
+    , # 45 (* 0x2d *)
+    , # 88 (* 0x58 *)
+    )
+  ]>.
 (* parameter logic [7:0] S2X [8] = '{8'h8c, 8'h79, 8'h05, 8'heb, 8'h12, 8'h04, 8'h51, 8'h53}; *)
+Definition S2X : kappa_sugared var Unit (Vector 8 (Vector 8 Bit)) :=
+  <[ mkVec 
+    ( # 83 (* 0x53 *)
+    , # 81 (* 0x51 *)
+    , #  4 (* 0x04 *)
+    , # 18 (* 0x12 *)
+    , #235 (* 0xeb *)
+    , #  5 (* 0x05 *)
+    , #121 (* 0x79 *)
+    , #140 (* 0x8c *)
+    )
+  ]>.
 
 End var.
 
 Section sanity_check.
-  Lemma aes_mul_gf2p2_wf: wf_debrujin ENil (Desugar (aes_mul_gf2p2 ) _).
-  Proof.
-    wf_kappa_via_equiv; intros;
+  Lemma aes_mul_gf2p2_wf: wf_debrujin ENil (Desugar (aes_mul_gf2p2) _).
+  Proof. wf_kappa_via_compute. Defined.
 
-  repeat match goal with 
-  | [ |- In _ _ ] => simpl; tauto
-  | [ H: In _ nil |- _] => inversion H
-  end.
+  Lemma aes_mul_gf2p4_wf: wf_debrujin ENil (Desugar (aes_mul_gf2p4) _).
+  Proof. wf_kappa_via_compute. Qed.
 
-
-    repeat match goal with 
-    | [ |- kappa_equivalence _ _ _] => constructor;intros
-    end; simpl; tauto.
-    
-    intros; simpl.
-    inversion H.
-  Qed.
+  Lemma aes_square_scale_gf2p4_gf2p2_wf: wf_debrujin ENil (Desugar (aes_square_scale_gf2p4_gf2p2) _).
+  Proof. wf_kappa_via_compute. Qed.
 
   Definition aes_mul_gf2p2_structure
     := to_constructive (Desugar (@aes_mul_gf2p2)) aes_mul_gf2p2_wf.
-  Compute aes_mul_gf2p2_structure.
 
-  Definition aes_mul_gf2p4_structure: structure << Vector 4 Bit, Vector 4 Bit >> << Vector 4 Bit >>
+  Definition aes_mul_gf2p4_structure
     := to_constructive (Desugar (@aes_mul_gf2p4)) aes_mul_gf2p4_wf.
 
-  Require Import Cava.Arrow.Instances.Prop.
-  Goal structure << Vector 4 Bit, Vector 4 Bit >> (Vector 4 Bit).
-    set (circuit := aes_mul_gf2p4).
-    set (circuit_wf := aes_mul_gf2p4_wf).
+  Definition aes_square_scale_gf2p4_gf2p2_structure
+    := to_constructive (Desugar (@aes_square_scale_gf2p4_gf2p2)) aes_square_scale_gf2p4_gf2p2_wf.
 
-    match goal with 
-    | [ circuit := ?circuit_kappa : forall var, kappa_sugared var ?I ?O
-      , circuit_wf: wf_debrujin ENil (Desugar (?circuit_kappa) natvar) |- _] =>
-      let circuit_structure := fresh circuit "_structure" in
-        pose (to_constructive (Desugar circuit_kappa) circuit_wf) as circuit_structure
-    end.
-    match goal with 
-    | [ circuit_structure : structure ?I ?O |- _] =>
-      let circuit_no_loops := fresh circuit_structure "_no_loops" in
-        pose (toCava circuit_structure NoLoops) as circuit_no_loops
-        (* compute in circuit_no_loops *)
+  (* Eval compute in aes_square_scale_gf2p4_gf2p2_structure.
+  Eval compute in aes_mul_gf2p2_structure. *)
+
+
+  Ltac debug_match tac x :=
+    match x with
+    | context[match ?X with |eq_refl => ?Y end] => tac
     end.
 
-    hnf in circuit_structure_no_loops.
-    compute in circuit_structure_no_loops.
-    inversion circuit_structure_no_loops.
-    apply (modular_prop _ _ _ _ _ _ ) in circuit_structure_no_loops.
+Require Import Cava.Arrow.Instances.Prop.
 
-    apply circuit_structure.
+  Goal toCava aes_mul_gf2p2_structure NoLoops.
+    compute.
+    tauto.
+  Qed.
 
-    apply (to_constructive (Desugar circuit) circuit_wf).
-
-(* Definition to_constructive {i o} (expr: Kappa i o) (wf: wf_debrujin ENil (expr _))
-  : structure (remove_rightmost_unit i) o *)
-
-      (* pose proof (to_constructive (Desugar H1) H2) as x;
-      clear H1; clear H2 *)
-  (* | [ H1: forall var, kappa_sugared var ?I ?O |- _ ] => idtac *)
-  (* | [ H2: wf_debrujin ENil (Desugar (?X) natvar) |- _ ] => idtac *)
-  (* | [ H2: wf_debrujin ENil (Desugar (?X) natvar) |- _ ] => 
-    (* idtac  *)
-    idtac "hello " X
-    match X with
-    |  => match
-    end *)
-  end.
-
-  Show Proof.
-    mk_constructive.
 End sanity_check.
+
+Arguments aes_scale_omega_gf2p2 {var}. 
+Arguments aes_scale_omega2_gf2p2 {var}. 
+Arguments aes_square_gf2p2 {var}. 
+Arguments aes_mul_gf2p2 {var}. 
+Arguments aes_mul_gf2p4 {var}. 
+Arguments aes_square_scale_gf2p4_gf2p2 {var}. 
+Arguments A2X {var}. 
+Arguments S2X {var}. 
+Arguments X2S {var}. 
+Arguments X2A {var}. 

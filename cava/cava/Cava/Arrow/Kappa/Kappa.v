@@ -1,12 +1,13 @@
 Require Import Cava.Arrow.Arrow.
 Require Import Cava.Arrow.Instances.Constructive.
 
-From Coq Require Import Arith NArith Lia.
+From Coq Require Import Arith NArith Lia NaryFunctions.
 
 Section Vars.
   Context {var: Kind -> Kind -> Type}.
 
-  (* `kappa_sugared` includes constructors for 
+  (* 
+    `kappa_sugared` includes constructors for 
     - Kappa Calculus, 
     - the Cava methods, 
     - lifting any morphism from the Constructive arrow instance, 
@@ -16,6 +17,7 @@ Section Vars.
     "primitive"/required constructors, the rest are a to help syntax 
     or type inference and desugar simply to combinations of the others.
     *)
+  (* TODO: cleanup / have a more modular EDSL representation *)
   Inductive kappa_sugared : Kind -> Kind -> Type :=
     (* Kappa Calculus *)
     | Var: forall {x y},    var x y -> kappa_sugared x y
@@ -47,8 +49,7 @@ Section Vars.
     | Xorcy: kappa_sugared << Bit, Bit, Unit >> Bit
     | Muxcy: kappa_sugared << Bit, Tuple Bit Bit, Unit >> Bit
     | UnsignedAdd: forall a b c, kappa_sugared << Vector a Bit, Vector b Bit, Unit >> (Vector c Bit)
-    (* TODO: enable lut *)
-    (*| Lut n: (bool^^n --> bool) -> bitvec (N.of_nat n) ~> bit;*)
+    | Lut n: (bool^^n --> bool) -> kappa_sugared << Vector n Bit, Unit >> Bit
     | IndexVec: forall n {o}, kappa_sugared << Vector n o, Vector (log2_up_min_1 n) Bit, Unit >> o
     | SliceVec: forall n x y {o}, x < n -> y <= x -> kappa_sugared << Vector n o, Unit >> (Vector (x - y + 1) o)
     | ToVec: forall {o}, kappa_sugared << o, Unit >> (Vector 1 o)
@@ -166,6 +167,7 @@ Section Vars.
     | Xorcy  => kappa_app << Bit, Bit, Unit >> xorcy 
     | Muxcy  => kappa_app << Bit, Tuple Bit Bit, Unit >> muxcy 
     | UnsignedAdd a b c => kappa_app << Vector a Bit, Vector b Bit, Unit >> (unsigned_add a b c)
+    | Lut n f => kappa_app << Vector n Bit, Unit >> (lut n f)
 
     | Constant b => DArr (constant b)
     | ConstantVec v => DArr (constant_bitvec _ v)
