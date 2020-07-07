@@ -184,6 +184,8 @@ Section NetlistEval.
       | false => Gnd
     end) (nat_to_bitvec_sized n (N.to_nat v)));
 
+    mk_module _ _ _name f := f;
+
     not_gate i :=
       o <- newWire ;;
       addInstance (Not i o) ;;

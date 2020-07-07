@@ -76,6 +76,8 @@ Instance CombinationalSTKC : ArrowSTKC CoqKindMaybeArrow := { }.
   constant b _ := Some b;
   constant_bitvec n v _ := Some (nat_to_bitvec_sized n (N.to_nat v));
 
+  mk_module _ _ _name f := f;
+
   not_gate b := Some (negb b);
   and_gate '(x, y) := Some (andb x y);
   nand_gate '(x, y) := Some (negb (andb x y));

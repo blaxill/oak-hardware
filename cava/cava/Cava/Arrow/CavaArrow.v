@@ -142,6 +142,8 @@ Class Cava := {
   constant : bool -> (Unit ~> Bit);
   constant_bitvec n: N -> (Unit ~> Vector Bit n);
 
+  mk_module i o: string -> (i~>o) -> (i~>o);
+
   not_gate:  Bit        ~> Bit;
   and_gate:  Bit ** Bit ~> Bit;
   nand_gate: Bit ** Bit ~> Bit;
