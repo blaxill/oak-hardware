@@ -26,7 +26,7 @@ Open Scope kind_scope.
 
 Definition cipher_round
   (sbox_impl: SboxImpl)
-  : forall cava: Cava, 
+  :  
     << Bit                               (* cipher mode: CIPH_FWD/CIPH_INV *)
     , Vector (Vector (Vector Bit 8) 4) 4 (* data input *)
     , Vector (Vector (Vector Bit 8) 4) 4 (* round key *)
@@ -42,7 +42,7 @@ Definition cipher_round
 (* Note: aes_key_expand in OpenTitan is stateful, this version is not *)
 Program Definition aes_key_expand
   (sbox_impl: SboxImpl)
-  : forall cava: Cava, 
+  :  
     << Bit (* op_i *)
     , Vector Bit 3 (* round id *)
     , Vector Bit 8 (* rcon input *)
@@ -161,16 +161,11 @@ Program Definition aes_key_expand
       in
     (rcon, regular)
     ]>.
-Next Obligation. lia. Defined.
-Next Obligation. lia. Defined. 
-Next Obligation. lia. Defined.
-Next Obligation. lia. Defined.
-Next Obligation. lia. Defined.
 
 (* stateless *)
-Program Definition unrolled_foward_cipher
+Definition unrolled_foward_cipher
   (sbox_impl: SboxImpl)
-  : forall cava: Cava, 
+  :  
     <<
       Vector Bit 8 (* rcon *)
     , Vector (Vector (Vector Bit 8) 4) 4 (* data *)
@@ -197,4 +192,3 @@ Program Definition unrolled_foward_cipher
 
     (rcon, !cipher_round !CIPH_FWD data_i round_key, new_key)
     ]>.
-Next Obligation. lia. Defined.
