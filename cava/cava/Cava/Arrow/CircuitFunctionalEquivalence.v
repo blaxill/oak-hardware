@@ -91,6 +91,111 @@ Inductive circuit_equiv: forall i o, Circuit i o -> (denote_kind i -> denote_kin
                   (CircuitArrow.Primitive p) r
 .
 
+Definition circuit_input {i o} (c: Circuit i o) := i.
+Definition circuit_output {i o} (c: Circuit i o) := o.
+
+Fixpoint circuit_equiv' i o (c: Circuit i o) {struct c}: (denote_kind i -> denote_kind o) -> Prop :=
+  match c as c' return (denote_kind (circuit_input c') -> denote_kind (circuit_output c')) -> Prop with
+  | Composition x y z f g => fun r =>
+    exists r1 r2,
+    circuit_equiv' y z g r2 /\
+    circuit_equiv' x y f r1 /\
+    forall a:denote_kind x, r a = r2 (r1 a)
+  | Structural (Uncancell x) => fun r =>
+    (forall a: denote_kind x, r a = (tt, a))
+  | Structural (Uncancelr x) => fun r =>
+    (forall a: denote_kind x, r a = (a,tt))
+  | Structural (Cancell x) => fun r =>
+    forall a, r a = @snd unit (denote_kind x) a
+  | Structural (Cancelr x) => fun r =>
+    forall a, r a = @fst (denote_kind x) unit a
+  | Structural (Swap x y) => fun r =>
+    (forall a : denote_kind x * denote_kind y, r a = (snd a, fst a))
+  | Structural (Drop x) => fun r =>
+    (forall a : denote_kind x, r a = tt)
+  | Structural (Copy x) => fun r =>
+    (forall a : denote_kind x, r a = (a,a))
+  | Structural (Arrow.Id x) => fun r =>
+    (forall a : denote_kind x, r a = a)
+  | Structural (Assoc x y z) => fun r =>
+    (forall i : denote_kind x * denote_kind y * denote_kind z,
+      r i = (fst (fst i), (snd (fst i), snd i)))
+  | Structural (Unassoc x y z) => fun r =>
+    (forall i : denote_kind x * (denote_kind y * denote_kind z),
+      r i = ((fst i, fst (snd i)), snd (snd i)))
+  | First x y z c => fun r =>
+    exists r1,
+    circuit_equiv' x y c r1 /\
+    (forall a : denote_kind x * denote_kind z, r a = (r1 (fst a), snd a))
+  | Second x y z c => fun r =>
+    exists r1,
+    circuit_equiv' x y c r1 /\
+    (forall a : denote_kind z * denote_kind x, r a = (fst a, r1 (snd a)))
+  | CircuitArrow.Primitive p => fun r =>
+    (forall a, r a = combinational_evaluation' (CircuitArrow.Primitive p) a)
+  | Map x y n c => fun r => forall r1,
+    circuit_equiv' x y c r1 /\
+    (forall v, r v = Vector.map r1 v)
+  | Resize x n nn => fun r =>
+    (forall v, r v = resize_default (kind_default _) nn v)
+  | _ => fun _ => True
+  end.
+
+Fixpoint circuit_equiv_elim i o (c: Circuit i o) {struct c}: (denote_kind i -> denote_kind o) -> Prop :=
+  match c as c' return (denote_kind (circuit_input c') -> denote_kind (circuit_output c')) -> Prop with
+  | Composition x y z f g => fun r =>
+    forall P:Prop,
+    (forall r1 r2,
+    circuit_equiv_elim y z g r2 ->
+    circuit_equiv_elim x y f r1 ->
+    (forall a:denote_kind x, r a = r2 (r1 a))
+    -> P) -> P
+  | Structural (Uncancell x) => fun r =>
+    (forall a: denote_kind x, r a = (tt, a))
+  | Structural (Uncancelr x) => fun r =>
+    (forall a: denote_kind x, r a = (a,tt))
+  | Structural (Cancell x) => fun r =>
+    forall a, r a = @snd unit (denote_kind x) a
+  | Structural (Cancelr x) => fun r =>
+    forall a, r a = @fst (denote_kind x) unit a
+  | Structural (Swap x y) => fun r =>
+    (forall a : denote_kind x * denote_kind y, r a = (snd a, fst a))
+  | Structural (Drop x) => fun r =>
+    (forall a : denote_kind x, r a = tt)
+  | Structural (Copy x) => fun r =>
+    (forall a : denote_kind x, r a = (a,a))
+  | Structural (Arrow.Id x) => fun r =>
+    (forall a : denote_kind x, r a = a)
+  | Structural (Assoc x y z) => fun r =>
+    (forall i : denote_kind x * denote_kind y * denote_kind z,
+      r i = (fst (fst i), (snd (fst i), snd i)))
+  | Structural (Unassoc x y z) => fun r =>
+    (forall i : denote_kind x * (denote_kind y * denote_kind z),
+      r i = ((fst i, fst (snd i)), snd (snd i)))
+  | First x y z c => fun r =>
+    forall P:Prop,
+    (forall r1,
+    circuit_equiv_elim x y c r1 ->
+    (forall a : denote_kind x * denote_kind z, r a = (r1 (fst a), snd a))
+    -> P) -> P
+  | Second x y z c => fun r =>
+    forall P:Prop,
+    (forall r1,
+    circuit_equiv_elim x y c r1 ->
+    (forall a : denote_kind z * denote_kind x, r a = (fst a, r1 (snd a)))
+    -> P) -> P
+  | CircuitArrow.Primitive p => fun r =>
+    (forall a, r a = combinational_evaluation' (CircuitArrow.Primitive p) a)
+  | Map x y n c => fun r => forall r1,
+    forall P:Prop,
+    (circuit_equiv_elim x y c r1 ->
+    (forall v, r v = Vector.map r1 v)
+    -> P) -> P
+  | Resize x n nn => fun r =>
+    (forall v, r v = resize_default (kind_default _) nn v)
+  | _ => fun _ => True
+  end.
+
 Lemma circuit_equiv_ext {i o} c spec1 spec2 :
   (forall x, spec1 x = spec2 x) -> circuit_equiv i o c spec1 ->
   circuit_equiv i o c spec2.
@@ -99,6 +204,58 @@ Proof.
   all:(econstructor; eauto; [ ]).
   all:intros; rewrite <-Hspec; eauto.
 Qed.
+
+Ltac destruct_kind :=
+  match goal with
+  | k: Kind |- _ => destruct k
+  end.
+
+Lemma circuit_equiv_ext' {i o} c spec1 spec2 :
+  (forall x, spec1 x = spec2 x) -> circuit_equiv' i o c spec1 ->
+  circuit_equiv' i o c spec2.
+Proof.
+  (* intro Hspec; induction c. *)
+
+  (* (1* { *1) *)
+  (* (1*   (2* intros. *2) *1) *)
+  (* { destruct x. *)
+  (*   all: cbn [arrow_input arrow_output primitive_input primitive_output circuit_equiv'] in *; *)
+  (*       destruct_kind; intros; rewrite <-Hspec; auto. *)
+  (* } *)
+  (* { destruct x; *)
+
+  (*  cbn [arrow_input arrow_output primitive_input primitive_output circuit_equiv'] in *; *)
+  (*       try destruct_kind; intros; rewrite <-Hspec; auto. *)
+ (* } *)
+
+  (* { destruct x. *)
+
+  (*  {cbn [arrow_input arrow_output primitive_input primitive_output circuit_equiv'] in *. *)
+  (*    intros. *)
+  (*      specialize (H r1 r2 H0). *)
+  (*      rewrite <-Hspec. *)
+  (*      apply H. *)
+Admitted.
+
+Lemma circuit_equiv'_is_circuit_equiv_elim {i o} c r:
+  circuit_equiv_elim i o c r ->
+  circuit_equiv' i o c r.
+Proof.
+  induction c.
+  {
+    destruct x; cbn [circuit_equiv_elim circuit_equiv']; intros; apply H.
+  }
+  2: {
+    cbn.
+    intros.
+    apply H.
+    eexists.
+    eexists.
+    intros.
+    eexists.
+    - apply IHc2. apply H0.
+    - split. * apply IHc1. apply H1. * apply H2.
+Admitted.
 
 Lemma circuit_equiv_implies_combinational_evaluation' {i o} c spec :
   circuit_equiv i o c spec ->
@@ -137,6 +294,13 @@ Definition obeys_spec {i o}
            (c : @morphism Kind KappaCat i o)
            (spec : denote_kind i -> denote_kind o) :=
   circuit_equiv _ _ (closure_conversion' Datatypes.nil (c natvar))
+                (fun (x : denote_kind i * unit) =>
+                   spec (Datatypes.fst x)).
+
+Definition obeys_spec' {i o}
+           (c : @morphism Kind KappaCat i o)
+           (spec : denote_kind i -> denote_kind o) :=
+  circuit_equiv' _ _ (closure_conversion' Datatypes.nil (c natvar))
                 (fun (x : denote_kind i * unit) =>
                    spec (Datatypes.fst x)).
 

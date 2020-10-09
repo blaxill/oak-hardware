@@ -90,12 +90,134 @@ Hint Resolve rewrite_or_default_refl : circuit_spec_correctness.
 (* Proofs of equivalence between circuit combinators and functional
    specifications *)
 Section CombinatorEquivalence.
+
+  Lemma rewrite_or_default_refl' A :
+    circuit_equiv_elim _ _ (rewrite_or_default A A) (fun x => x).
+  Proof. Admitted.
+  Require Import Arrow.Category.
+  Local Open Scope category_scope.
+
+  Lemma circuit_equiv_lower_abs: forall X Y Z f ctxt r,
+    circuit_equiv_elim (Tuple (Tuple X Y) (as_kind ctxt)) Z
+    (first swap >>> assoc >>> closure_conversion' (_ :: ctxt) (f (length ctxt))) r
+    ->
+      circuit_equiv_elim (Tuple (Tuple X Y) (as_kind ctxt)) Z
+        (closure_conversion' ctxt (Abs f)) r
+    .
+  Proof.
+    intros.
+    auto.
+  Qed.
+
+  Lemma circuit_equiv_lower_app: forall x y z (f: kappa _ (Tuple x y) z) e ctxt r,
+    circuit_equiv_elim _ _ (second (copy >>> first (uncancell >>> closure_conversion' ctxt e))
+    >>> unassoc >>> first swap
+    >>> closure_conversion' ctxt f) r
+    ->
+    circuit_equiv_elim _ _ (closure_conversion' ctxt (App f e)) r .
+  Proof. intros. auto. Qed.
+
+
+  (* Lemma replicate_correct A n : *)
+  (*   obeys_spec (@Combinators.replicate n A) *)
+  (*              (fun x : denote_kind A * unit => Vector.const (fst x) n). *)
+  (* Proof. *)
+  (*   induction n; cbn [Combinators.replicate]; circuit_spec; reflexivity. *)
+  (*   Show Proof. *)
+  (* Qed. *)
+
   Lemma replicate_correct A n :
-    obeys_spec (@Combinators.replicate n A)
+    obeys_spec' (@Combinators.replicate n A)
                (fun x : denote_kind A * unit => Vector.const (fst x) n).
   Proof.
-    induction n; cbn [Combinators.replicate]; circuit_spec; reflexivity.
-  Qed.
+    Set Ltac Profiling.
+    cbv [obeys_spec'];
+    apply circuit_equiv'_is_circuit_equiv_elim.
+    induction n;
+    cbn [Combinators.replicate denote_kind product primitive_input primitive_output as_kind].
+
+    Ltac t :=
+      arrowsimpl;
+      cbn [circuit_equiv_elim denote_kind product] in *;
+      repeat match goal with
+      | |- _ /\ _ => split
+      | |- exists x, _ => eexists
+      | |- forall _, _ => intros
+      | |- _ = _ => reflexivity
+      | |- _ = _ => circuit_spec_instantiate
+      end.
+
+    Ltac lower1' :=
+      lazymatch goal with
+      | |- circuit_equiv_elim _ _ (@closure_conversion' ?t1 ?t2 ?ctxt ?k) _ =>
+        lazymatch k with
+        | @Abs _ ?x ?y ?z ?f =>
+          apply circuit_equiv_lower_abs
+        | @App _ ?x ?y ?z ?f ?e =>
+          apply circuit_equiv_lower_app
+        | @Let _ ?x ?y ?z ?v ?f => rewrite (@lower_let x y z f v ctxt)
+        | @RemoveContext _ ?x ?y ?e =>
+          first [ rewrite (@lower_remove_context x y e ctxt)
+                | change x with t1; change y with t2;
+                  rewrite (@lower_remove_context t1 t2 e ctxt) ]
+        | @Comp _ ?x ?y ?z ?e1 ?e2 =>
+          rewrite (@lower_comp x y z e2 e1 ctxt)
+        | @Primitive _ ?p => cbv [closure_conversion']
+        | @Var _ _ _ _ => cbv [closure_conversion']
+        end; arrowsimpl
+      end.
+
+    Ltac circuit_spec_step' :=
+      lazymatch goal with
+      | |- circuit_equiv_elim _ _ (closure_conversion' _ ?c) _ =>
+        first [ lower1'
+              | apply obeys_spec_to_circuit_equiv;
+                solve [eauto with circuit_spec_correctness ] ]
+      | |- circuit_equiv_elim _ _ _ _ =>
+        first [
+            apply rewrite_or_default_refl'
+              | solve [ eauto with circuit_spec_correctness ]
+              | primitive_equiv ]
+      | |- ?lhs = ?rhs => circuit_spec_instantiate
+      | |- ?x => fail "Stuck at" x
+      end.
+
+    {
+      (* circuit_spec_step'. *)
+
+      cbn [circuit_equiv_elim closure_conversion' denote_kind product] in *.
+      arrowsimpl.
+      cbn [circuit_equiv_elim closure_conversion' denote_kind product] in *.
+
+      Ltac s := match goal with
+        | |- forall _, _ => intros
+        | H: _ -> _ -> _ -> _ -> _ -> ?x |- ?x => eapply H; clear H
+        | H: forall _, _ -> _ -> ?x |- ?x => eapply H; clear H
+        | H: _ -> ?x |- ?x => apply H; clear H
+        | |- _ = _ => reflexivity
+        | |- _ = _ => circuit_spec_instantiate
+                end; cbn [fst snd].
+
+      repeat s.
+    }
+    cbn [circuit_equiv_elim closure_conversion' denote_kind product] in *;
+    arrowsimpl;
+    cbn [circuit_equiv_elim closure_conversion' denote_kind product] in *;
+    repeat s.
+    { apply rewrite_or_default_refl'. }
+    { apply IHn. }
+    { apply rewrite_or_default_refl'. }
+    { cbn [circuit_equiv_elim closure_conversion' denote_kind product fst combinational_evaluation'].
+      reflexivity.
+      }
+
+    Set Printing Depth 200.
+    Set Printing Width 200.
+    (* Show Proof. *)
+    Show Ltac Profile.
+  Time Qed.
+  asdaklsdjlkj
+  Print replicate_correct.
   Hint Resolve replicate_correct : circuit_spec_correctness.
 
   Lemma reshape_correct {A} n m :
@@ -210,13 +332,14 @@ Section CombinatorEquivalence.
   Hint Extern 2 (obeys_spec (Combinators.bitwise _) _)
   => (eapply bitwise_correct; circuit_spec_crush) : circuit_spec_correctness.
 
+
   Lemma mux_item_correct A :
-    obeys_spec (@Combinators.mux_item A)
+    obeys_spec' (@Combinators.mux_item A)
                (fun x : bool * (denote_kind A * (denote_kind A * unit)) =>
                   if (fst x) then (fst (snd x)) else (fst (snd (snd x)))).
   Proof.
-    cbv [Combinators.mux_item]; circuit_spec; [ ].
-    rewrite bitwise_or_enable. reflexivity.
+
+
   Qed.
   Hint Resolve mux_item_correct : circuit_spec_correctness.
 End CombinatorEquivalence.
