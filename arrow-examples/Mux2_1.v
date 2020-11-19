@@ -27,8 +27,10 @@ Section notation.
   Local Open Scope category_scope.
   Local Open Scope kind_scope.
 
+About Kind.
+
   Definition mux2_1
-    : << Bit, << Bit, Bit >>, Unit >> ~> Bit :=
+    : << ArrowKind.Bit, << ArrowKind.Bit, ArrowKind.Bit >>, Unit >> ~> ArrowKind.Bit :=
     <[ \ sel ab =>
       let '(a,b) = ab in
       let sel_a = and sel a in
@@ -49,8 +51,8 @@ Require Import Cava.Netlist.
 
 Definition mux2_1_Interface :=
    combinationalInterface "mux2_1"
-     (mkPort "s" Kind.Bit, (mkPort "a" Kind.Bit, mkPort "b" Kind.Bit))
-     (mkPort "o" Kind.Bit)
+     [mkPort "s" Kind.Bit; (mkPort "a" Kind.Bit, mkPort "b" Kind.Bit)]
+     [mkPort "o" Kind.Bit]
      [].
 
 Definition mux2_1_netlist :=
