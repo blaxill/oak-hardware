@@ -27,10 +27,8 @@ Section notation.
   Local Open Scope category_scope.
   Local Open Scope kind_scope.
 
-About Kind.
-
   Definition mux2_1
-    : << ArrowKind.Bit, << ArrowKind.Bit, ArrowKind.Bit >>, Unit >> ~> ArrowKind.Bit :=
+    : << Bit, << Bit, Bit >>, Unit >> ~> Bit :=
     <[ \ sel ab =>
       let '(a,b) = ab in
       let sel_a = and sel a in
@@ -48,15 +46,10 @@ Proof. simply_combinational. Qed.
 
 Require Import Cava.Types.
 Require Import Cava.Netlist.
-
-Definition mux2_1_Interface :=
-   combinationalInterface "mux2_1"
-     [mkPort "s" Kind.Bit; (mkPort "a" Kind.Bit, mkPort "b" Kind.Bit)]
-     [mkPort "o" Kind.Bit]
-     [].
+Require Import Cava.Signal.
 
 Definition mux2_1_netlist :=
-  makeNetlist mux2_1_Interface (build_netlist (closure_conversion mux2_1)).
+  build_netlist (closure_conversion mux2_1) "mux2_1" ("s", ("a", "b")) "o".
 
 Definition mux2_1_tb_inputs : list (bool * (bool * bool)) :=
  [(false, (false, true));
@@ -72,5 +65,8 @@ Definition mux2_1_tb_expected_outputs : list bool :=
 Goal is_combinational (closure_conversion mux2_1). Proof. simply_combinational. Qed.
 
 Definition mux2_1_tb :=
-  testBench "mux2_1_tb" mux2_1_Interface
-            mux2_1_tb_inputs mux2_1_tb_expected_outputs.
+  testBench "mux2_1_tb"
+   (combinationalInterface "mux2_1"
+     [mkPort "s" Bit; mkPort "a" Bit; mkPort "b" Bit]
+     [mkPort "o" Bit] [])
+  (map (fun '(a,(b,c)) => (a,b,c)) mux2_1_tb_inputs) mux2_1_tb_expected_outputs.
