@@ -123,7 +123,7 @@ Definition pipelinedNAND_tb
 
 (******************************************************************************)
 (* countBy                                                                    *)
-(******************************************************************************) 
+(******************************************************************************)
 
 (*
 
@@ -138,7 +138,7 @@ bit-growth i.e. it computes (a + b) mod 256.
    |   |_______|            |
    |   ___                  |
     --| + ---------------------- out
- in --|___|     
+ in --|___|
 
 *)
 
@@ -153,7 +153,30 @@ Section WithCava.
   Definition countBy : signal (Vec Bit 8) -> cava (signal (Vec Bit 8))
     := loop countFork.
 
+  (* ignore state *)
+  Definition passthrough
+                        (i : signal (Vec Bit 8) * signal (Vec Bit 8))
+                       : cava (signal (Vec Bit 8) * signal (Vec Bit 8)) :=
+    ret (fst i, snd i).
+
+  Definition countBy1 : signal (Vec Bit 8) -> cava (signal (Vec Bit 8))
+    := loop passthrough >=> countBy.
+
+  (* ignore outer state *)
+  Definition passthrough2
+                        (i : signal (Vec Bit 8) * signal (Vec Bit 8))
+                       : cava (signal (Vec Bit 8) * signal (Vec Bit 8)) :=
+    x <- loop countFork (fst i) ;;
+    ret (x, snd i).
+
+  Definition countBy2 : signal (Vec Bit 8) -> cava (signal (Vec Bit 8))
+    := loop passthrough2.
+
 End WithCava.
+
+Compute map Bv2N (sequential (countBy [b14; b7; b3; b250])).
+Compute map Bv2N (sequential (countBy1 [b14; b7; b3; b250])).
+Compute map Bv2N (sequential (countBy2 [b14; b7; b3; b250])).
 
 Example countBy_ex1: sequential (countBy [b14; b7; b3; b250]) = [b14; b21; b24; b18].
 Proof. reflexivity. Qed.
