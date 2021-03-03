@@ -711,7 +711,7 @@ Section WithCava.
         r13 <- round_13 ;;
         r0 <- round_0 ;;
         ret ( (op, r13, r0, current_round, st, k, k)
-            , (in_ready, out_valid, crypt, dec_key_gen, key_clear, data_out_clear))
+            , (constant true, out_valid, crypt, dec_key_gen, key_clear, data_out_clear))
 
       ) >==>
       First cipher_loop >==>
