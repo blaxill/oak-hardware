@@ -29,22 +29,6 @@ Local Open Scope ix_monad_scope.
 (**** IMPORTANT: if you make changes to the API of these definitions, or add new
       ones, make sure you update the reference at docs/reference.md! ****)
 
-  (* Class Cava := *)
-  (*   { cava : list SignalType -> Type -> Type; *)
-  (*     monad :> IxMonad Monoid_list_app cava; *)
-  (*     xor2  : signal Bit * signal Bit -> cava [] (signal Bit); *)
-  (*     inv : signal Bit -> cava [] (signal Bit); *)
-  (*     loop_init : forall {i s o body_state} *)
-  (*       (resetval : combType s) *)
-  (*       (body : i * signal s -> cava body_state (o * signal s)) *)
-  (*       (input : i), *)
-  (*       cava (s :: body_state) o; *)
-  (*     delay_init : forall {s} *)
-  (*       (resetval : combType s) *)
-  (*       (x : signal s), *)
-  (*       cava [s] (signal s); *)
-  (*  }. *)
-
 Definition port_signal signal port : Type := signal (port_type port).
 (* The Cava class represents circuit graphs with Coq-level inputs and
    outputs, but does not represent the IO ports of circuits. This allows
